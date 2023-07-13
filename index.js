@@ -5,14 +5,12 @@ const express = require('express'),
 const morgan = require('morgan');
 const app = express();
 const mongoose = require('mongoose');
-const Models = require('./models.js');
+const models = require('./models.js');
 
-const Movies = Models.Movie;
-const Users = Models.User;
-const Genres = Models.Genre;
-const Directors = Models.Director;
+const movies = models.Movie;
+const users = models.User;
 
-mongoose.connect('mongodb://127.0.0.1:27017/test', { useNewUrlParser: true, useUnifiedTopology: true });
+mongoose.connect('mongodb://127.0.0.1:27017/new_database', { useNewUrlParser: true, useUnifiedTopology: true });
 
 const fs = require('fs');
 const path = require('path');
@@ -26,7 +24,7 @@ app.get("/", (req, res) => {
 
 //Return a list of ALL movies to the user
 app.get('/movies', (req, res) => {
-  Movies.find()
+  movies.find()
   .then((movies) => {
     res.status(201).json(movies);
   })
@@ -38,7 +36,7 @@ app.get('/movies', (req, res) => {
 
 //Return data about a single movie by title to the user
 app.get('/movies/:title', (req, res) => {
-  Movies.findOne({ Title: req.params.title })
+  movies.findOne({ title: req.params.title })
   .then((movie) => {
     res.json(movie);
   })
@@ -50,9 +48,9 @@ app.get('/movies/:title', (req, res) => {
 
 //Return data about a genre by name/title
 app.get('/movies/genre/:genreName', (req, res) => {
-  Movies.findOne({ "Genre.Name" : req.params.genreName })
+  movies.findOne({ "genre.name" : req.params.genreName })
   .then((movie) => {
-    res.json(movie.Genre);
+    res.json(movie.genre);
   })
   .catch((err) => {
     console.error(err);
@@ -62,9 +60,9 @@ app.get('/movies/genre/:genreName', (req, res) => {
 
 //Return data about a director (bio, birth year, death year) by name
 app.get('/movies/director/:directorName', (req, res) => {
-  Movies.findOne({ "Director.Name" : req.params.directorName })
+  movies.findOne({ "director.name" : req.params.directorName })
   .then((movie) => {
-    res.json(movie.Director);
+    res.json(movie.director);
   })
   .catch((err) => {
     console.error(err);
@@ -74,7 +72,7 @@ app.get('/movies/director/:directorName', (req, res) => {
 
 //Return a list of ALL users
 app.get('/users', (req, res) => {
-  Users.find()
+  users.find()
   .then((users) => {
     res.status(201).json(users);
   })
@@ -86,7 +84,7 @@ app.get('/users', (req, res) => {
 
 //Return data about user by Username
 app.get('/users/:userName', (req, res) => {
-  Users.findOne({ UserName: req.params.userName })
+  users.findOne({ username: req.params.userName })
     .then((user) => {
       res.json(user);
     })
@@ -98,17 +96,17 @@ app.get('/users/:userName', (req, res) => {
 
 //Allow new user to register
 app.post('/users', (req, res) => {
-  Users.findOne({ UserName: req.body.UserName })
+  users.findOne({ username: req.body.username })
     .then((user) => {
       if (user) {
-        return res.status(400).send(req.body.UserName + 'already exists');
+        return res.status(400).send(req.body.username + 'already exists');
       } else {
-        Users
+        users
           .create({
-            UserName: req.body.UserName,
-            Password: req.body.Password,
-            Email: req.body.Email,
-            Birthday: req.body.Birthday
+            username: req.body.username,
+            password: req.body.password,
+            email: req.body.email,
+            birthday: req.body.birthday
           })
           .then((user) =>{res.status(201).json(user) })
         .catch((error) => {
@@ -125,12 +123,12 @@ app.post('/users', (req, res) => {
 
 //Allow user to update their info
 app.put('/users/:userName', (req, res) => {
-  Users.findOneAndUpdate({ UserName: req.params.userName }, { $set:
+  users.findOneAndUpdate({ username: req.params.userName }, { $set:
     {
-      UserName: req.body.UserName,
-      Password: req.body.Password,
-      Email: req.body.Email,
-      Birthday: req.body.Birthday
+      username: req.body.username,
+      password: req.body.password,
+      email: req.body.email,
+      birthday: req.body.birthday
     }
   },
   { new: true })
@@ -144,9 +142,9 @@ app.put('/users/:userName', (req, res) => {
 });
 
 //Let user add movies to their fasvorite list
-app.post('/users/:userName/movies/:movieID', (req, res) => {
-  Users.findOneAndUpdate({ UserName: req.params.userName }, {
-     $push: { FavoriteMovies: req.params.movieID }
+app.post('/users/:userName/movies/:movieId', (req, res) => {
+  users.findOneAndUpdate({ username: req.params.userName }, {
+     $push: { favoriteMovies: req.params.movieId }
    },
    { new: true },)
    .then(updatedUser => {
@@ -159,9 +157,9 @@ app.post('/users/:userName/movies/:movieID', (req, res) => {
  });
 
 //Allow user to remove movie from their favorite list
-app.delete('/users/:userName/movies/:movieID', (req, res) => {
-  Users.findOneAndUpdate({ UserName: req.params.userName }, {
-     $pull: { FavoriteMovies: req.params.movieID }
+app.delete('/users/:userName/movies/:movieId', (req, res) => {
+  users.findOneAndUpdate({ username: req.params.userName }, {
+     $pull: { favoriteMovies: req.params.movieId }
    },
    { new: true })
    .then(updatedUser => {
@@ -175,12 +173,12 @@ app.delete('/users/:userName/movies/:movieID', (req, res) => {
 
 //allow user to deregister
 app.delete('/users/:userName', (req, res) => {
-  Users.findOneAndRemove({ UserName: req.params.userName })
+  users.findOneAndRemove({ username: req.params.userName })
     .then((user) => {
       if (!user) {
-        res.status(400).send(req.params.Username + ' was not found');
+        res.status(400).send(req.params.userName + ' was not found');
       } else {
-        res.status(200).send(req.params.Username + ' was deleted.');
+        res.status(200).send(req.params.userName + ' was deleted.');
       }
     })
     .catch((err) => {
@@ -192,4 +190,3 @@ app.delete('/users/:userName', (req, res) => {
 app.listen(8080, () => {
     console.log('Your app is listening on port 8080.');
   });
-
